@@ -1,0 +1,53 @@
+---
+description: 前端组件结构与拆分规范
+globs:
+  - lims-electron/src/**/*.tsx
+  - lims-electron/src/**/*.ts
+---
+
+# 前端组件结构规范
+
+## 组件体积限制
+
+- 单个 `.tsx` 组件文件不超过 **500 行**
+- 超过 500 行时必须拆分为子组件和/或自定义 Hook
+- 纯工具函数、类型定义、常量应提取到同目录下的独立 `.ts` 文件
+
+## 拆分原则
+
+### 优先提取为独立文件的内容
+
+1. **类型 & 常量** → `xxxTypes.ts` 或 `xxxConstants.ts`
+2. **纯工具函数**（不依赖 React）→ `xxxUtils.ts` 或 `xxxModel.ts`
+3. **表格列定义** → `useXxxColumns.tsx`（自定义 Hook）
+4. **弹窗组件** → `XxxModal.tsx`（查看弹窗、表单弹窗等）
+5. **表单字段组件** → `XxxFormFields.tsx`
+6. **Mutation / 复杂异步逻辑** → `useXxxMutations.ts`
+7. **面板/详情区域** → `XxxDetailPane.tsx`
+
+### 命名约定
+
+- Hook 文件以 `use` 开头，如 `useResizablePanel.ts`
+- 组件文件使用 PascalCase，如 `EditableTitle.tsx`
+- 工具/类型文件使用 camelCase，如 `certificatePrepareFormUtils.ts`
+- 拆分出的文件放在与主组件相同的目录下（不需要额外创建子目录）
+
+### 主文件职责
+
+拆分后的主文件应只负责：
+- 组装子组件和 Hook
+- 页面级布局编排
+- 页面级状态协调（如 URL 同步、Tab 切换）
+
+## 语义按钮与表格操作列
+
+工具栏 / 表单主操作等非表格场景使用 **`SemanticButton`** 与 **`theme/semanticButtonStyles.ts`**；表格 **操作列** 仅用原生 **`Button type="link"`**。详见 **`006.语义按钮与表格操作列.mdc`**。
+
+## 待拆分组件清单
+
+以下组件已超过 500 行，后续迭代时应逐步拆分：
+
+- `commissionOrder/CommissionOrderDetailTabs.tsx` (~589 行) — 提取导入逻辑 + 分配弹窗
+- `certificateReport/CertificatePrepareWorkflowModal.tsx` (~578 行) — 提取 mutations + 时间线 + 步骤面板
+- `standard/List.tsx` (~528 行) — 提取列定义 + 查看弹窗
+- `commissionOrder/List.tsx` (~513 行) — 提取列定义 + URL 同步 Hook

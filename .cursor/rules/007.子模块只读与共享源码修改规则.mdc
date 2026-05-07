@@ -1,0 +1,26 @@
+---
+description: 前端在 lims-electron 根目录；后端在 lims-server 独立仓库
+alwaysApply: true
+---
+
+# 源码修改入口
+
+## 当前结构
+
+- **`lims-electron`**：**纯前端**仓库（根目录 `src/`、`electron/`）。**无** Git 子模块。本地开发默认连接 `lims-server` 独立仓库中 `make dev` 启动的后端；Docker 后端镜像（`deploy/docker/.env` 中 `LIMS_BACKEND_IMAGE`）仅作为可选联调方式。生产/私有化在环境文件中配置线上镜像与数据库连接。
+- **`lims-server`**：后端唯一源仓库（API、迁移、Worker）。
+- **`lims-web`**（若保留）：仅存 Web 部署差异时修改；业务前端以 **`lims-electron`** 为准。
+
+## 修改入口
+
+- **前端**：`**lims-electron/` 仓库根目录** 下 `src/`、`electron/`。
+- **后端**：`**lims-server/`**，不在 `lims-electron` 中检出子模块。
+
+## 禁止
+
+- **不要**在已移除的 `lims-electron/backend/`、`lims-electron/frontend/` 路径上改代码。
+- **不要**把 `lims-server` 再作为子模块挂回本仓（除非你明确要求恢复该模式）。
+
+## 允许例外
+
+- `lims-electron` 根目录 `.env`、`deploy/docker/.env` 等本地配置按团队规范处理，勿提交密钥。

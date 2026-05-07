@@ -1,0 +1,35 @@
+---
+description: 本地全栈验证前用 lims-server make dev 启后端，lims-electron make dev 启前端，并做健康检查
+alwaysApply: true
+---
+
+# 本地全栈验证与 dev 重启
+
+在**完成可能影响本地联调的改动**（例如 API、路由、前后端集成、Docker 开发依赖）后，或**用户要求验证本地功能**时，应按下列流程启动（`lims-electron` **无**后端子模块；本地默认后端由 `lims-server` 独立仓库 `make dev` 启动）。
+
+## 1. 干净停止再拉起
+
+默认本地联调用两个终端：
+
+1. 在 `lims-server` 根目录：首次执行 `cp .env.example .env`、`make dev-infra`、`make migrate-up`；之后启动后端用 **`make dev`**。
+2. 在 `lims-electron` 根目录：`make dev` 启动前端 Vite（后端已由上一步监听 `APP_PORT`，默认 8080）。
+
+**注意**：`lims-server make dev` 与 `lims-electron make dev` 都会占用前台终端。Agent 应在**后台**启动长驻命令，再继续读日志、发 HTTP 请求做验证。
+
+前置条件：
+
+- `lims-server/.env` 已配置；`PASSWORD_ENCRYPT_KEY` 应与前端 `VITE_PASSWORD_ENCRYPT_KEY` 一致；
+- `lims-electron` 根目录可选：前端 `.env` 或 `.env.development`（见 `.env.example`）；
+- 本机 Docker 可用。
+
+## 2. 冒烟检查（默认端口）
+
+待后端就绪后：
+
+- 后端：`curl -sf "http://127.0.0.1:${APP_PORT:-8080}/healthz"` 应返回含 `ok` 的 JSON。
+- 依赖：`curl -sf "http://127.0.0.1:${APP_PORT:-8080}/ready"` 应返回含 `ready` 的 JSON。
+- 前端：`http://127.0.0.1:${FRONTEND_DEV_PORT:-5173}/`
+
+## 3. 与私有化约束的关系
+
+验证流程仅使用本机回环与仓库内命令，**不得**硬编码公网地址或依赖外部 CDN。

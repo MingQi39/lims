@@ -1,0 +1,38 @@
+---
+description: 语义按钮（SemanticButton）公共方案、主题色入口与表格操作列例外
+globs:
+  - lims-electron/src/**/*.tsx
+  - lims-electron/src/**/*.ts
+---
+
+# 语义按钮与表格操作列
+
+## 公共方案（唯一入口）
+
+1. **主题色与语义色常量**（十六进制、CSS 变量、色板）：`lims-electron/src/theme/colors.ts`  
+   - `THEME_PRIMARY`、`THEME_SUCCESS`、`THEME_ERROR` 等与 Ant Design `ConfigProvider` 的 `theme.token` 对齐。  
+   - **`SEMANTIC_BTN_COLORS`**：仅存放 Ant Design 6 `Button` 的 **`color` 预设名**（`primary` / `green` / `danger` / `default`）。**commit**＝实心主 CTA；**brandSoft**＝与主色同系的描边（导入/导出）；**neutral**＝灰描边工具钮。避免再用与主色冲突的 `geekblue` 等预设铺满工具栏。**改配色优先改此处**。
+
+2. **文案 → variant/color 映射表**：`lims-electron/src/theme/semanticButtonStyles.ts`  
+   - 必须从 **`SEMANTIC_BTN_COLORS`** 引用颜色键，禁止在本文件写裸字符串预设名（便于与 `colors.ts` 同步）。  
+   - 提供 **`normalizeButtonLabel`**、**`getSemanticButtonProps`**（给 `Modal` / `Popconfirm` 的 `okButtonProps` 等）、**`lookupSemanticStyle`**。
+
+3. **组件封装**：`lims-electron/src/components/SemanticButton.tsx`  
+   - 根据子节点文案或 **`semanticLabel`** 合并语义样式；显式传入的 props **后覆盖**语义。
+
+4. **全局 Modal**：`lims-electron/src/main.tsx` 中仅对 **`cancelButtonProps`** 使用 `getSemanticButtonProps('取消')`；确定键文案多样（确定 / 保存 / 确认应用），在各自 `Modal` 上按需传 **`okButtonProps={getSemanticButtonProps('…')}`**。
+
+## 表格上方工具栏间距
+
+`ConfigurableDataTable` 中工具栏行（`toolbarActions` + 列设置）与表格之间使用 **`mb-[5px]`**，避免按钮区与表头贴死。其他自建工具栏 + 表格的布局若需与之一致，单独保证工具栏容器 **`margin-bottom: 5px`**（注意勿与外层 `gap-*` 重复叠加）。
+
+## 表格「操作列」例外（必须遵守）
+
+- **表格列 `title: "操作"`（及同类行内操作：查看 / 编辑 / 删除 / 导出链接等）一律使用 Ant Design 原生 `Button`**：`type="link"`，删除用 **`danger`**，保持与 Ant Design 默认链路样式一致。  
+- **禁止**在表格操作列使用 `SemanticButton`（避免实心按钮、预设色与链路操作混用）。
+
+## 新增文案或按钮类型时
+
+1. 若属于**非表格**工具栏、表单底栏、流程操作：在 `semanticButtonStyles.ts` 增加 `EXACT` 或 `PREFIX` 映射，且颜色取自 `SEMANTIC_BTN_COLORS`。  
+2. 若是**表格操作列**：只用 `Button` + `type="link"` / `danger`，不写语义映射。  
+3. 若需全新色系：先在 `colors.ts` 增加或调整 `SEMANTIC_BTN_COLORS` 的键与注释，再在映射表中使用。

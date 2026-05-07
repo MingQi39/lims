@@ -1,0 +1,35 @@
+---
+description: 证书/报告 Excel 经 LibreOffice 转 PDF 时的打印布局约束；修改 tplengine.RenderOptions 或证书导出渲染选项时必读，避免表格横向溢出
+globs:
+  - lims-server/internal/pkg/tplengine/**/*.go
+  - lims-server/internal/service/certificate_export_service.go
+alwaysApply: false
+---
+
+# 证书 PDF 与 Excel 打印布局（LibreOffice）
+
+> **lims-server 子仓库**内同款规则：`lims-server/.cursor/rules/012.证书PDF与Excel打印布局.mdc`（仅单独打开后端仓库时用）。
+
+
+## 问题现象（反复出现）
+
+服务端用 **LibreOffice headless** 将渲染后的 `.xlsx` 转为 `.pdf` 时，若在 Excel/WPS 里看起来正常，但 PDF 里 **表格冲出页面、横向溢出、版式「乱了」**，常见原因是：**没有在 OOXML 里约束「打印宽度适配」**，而 LibreOffice 与 Excel 对「仅沿用模版缩放」的解读不一致。
+
+## 禁止做法
+
+- **证书封面**（及其他需走 LibreOffice 的单文件 PDF）渲染时，**不要**单独使用 `tplengine.RenderOptions{ PreservePageLayout: true }` 作为唯一布局策略而不保证横向适配。  
+  `PreservePageLayout` 会让 `fixPrintLayout` **跳过** `FitToPage` / `FitToWidth`，完全依赖模版自带字段；模版稍不完整就会在 LibreOffice 下溢出。
+
+## 推荐做法
+
+- 证书封面等与「人工编辑版式」相关的导出，使用 **`KeepTemplateHeight: true`**：  
+  `fixPrintLayout` 只写入 **`FitToPage` + `FitToWidth=1`**，**不重算** `Print_Area`、**不覆盖**模版里的 **`FitToHeight`**，在保留纵向缩放意图的同时，避免横向溢出。
+
+## 代码锚点（修改后自检）
+
+- `lims-server/internal/pkg/tplengine/engine.go`：`RenderOptions`、`fixPrintLayout` 各分支语义。  
+- `lims-server/internal/service/certificate_export_service.go`：封面 `renderAndConvert`、`coverOpts`（完整证书 PDF）须与上述策略一致。
+
+## 与印章缩放的关系
+
+- 印章图片 **contain + 居中 + 留白** 见 `company_seal.go`，解决的是 **图层压住文字**；**表格溢出** 是 **打印页布局** 问题，二者独立，缺一不可。

@@ -1,0 +1,13 @@
+# 用于旧版 monorepo 根目录作为 Docker build context；当前前端镜像以 lims-electron 根目录 Dockerfile 为准
+**/node_modules
+**/dist
+**/dist-electron
+**/release
+**/.git
+**/.env
+**/.env.*
+**/tmp
+**/*_test.go
+**/*.test.go
+**/.DS_Store
+**/tsconfig.tsbuildinfo

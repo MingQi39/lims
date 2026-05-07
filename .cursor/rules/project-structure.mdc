@@ -1,0 +1,132 @@
+---
+description: LIMS 实验室信息管理系统 - 项目结构与代码修改定位规则
+globs:
+  - "**/*"
+---
+
+# LIMS 项目结构
+
+本工作区以 **`lims-electron`**（根目录自带 React 前端，**无** Git 子模块）与 **`lims-server`**（独立后端仓）为主。本地/云端通过 **HTTP + 后端镜像 `LIMS_BACKEND_IMAGE`** 连接。
+
+## 子项目一览
+
+| 子项目 | 路径 | 用途 | 技术栈 |
+|--------|------|------|--------|
+| **lims-server** | `lims-server/` | 后端 API 服务（源仓库） | Go |
+| **lims-electron** | `lims-electron/` | 根目录 `src/` + `electron/`，Compose/Makefile 仅编排独立后端镜像 | React + Vite + Electron |
+| **lims-web** | （可选） | Web 部署集成时以 `lims-electron` 前端为准 | — |
+| **lims-frontend** | （可选/遗留） | 非当前规范下的必选入口 | — |
+
+## ⛔ 修改铁律
+
+- **前端**：在 **`lims-electron/` 仓库根** 修改 `src/`、`electron/` 等（**无** `frontend`/`backend` 子目录）。
+- **后端**：在 **`lims-server/`** 修改、构建镜像；**不在** `lims-electron` 中检出后端源码。
+
+### 判断流程
+
+1. 改动 `src/*`、`electron/*`、根目录前端配置 → **`lims-electron` 根目录**
+2. 改动 `internal/`、`cmd/`、`migrations/` → **`lims-server`**
+3. 改动 Helm/Docker/根 `Makefile` 全栈流程 → **`lims-electron`**
+4. Web 部署仅有多余集成仓时 → **`lims-web`**（部署专属）
+5. 不确定时 → 前端优先 **`lims-electron` 根目录**，后端优先 **`lims-server`**
+
+## 代码修改路由规则
+
+### 后端修改 → `lims-server`
+
+所有后端逻辑修改都在 `lims-server` 中进行：
+
+- API 接口 / Handler → `lims-server/internal/handler/`
+- 业务逻辑 / Service → `lims-server/internal/service/`
+- 数据库模型 / Model → `lims-server/internal/model/`
+- 数据访问 / Repository → `lims-server/internal/repository/`
+- DTO / 请求响应结构 → `lims-server/internal/dto/`
+- 路由定义 → `lims-server/internal/router/`
+- 中间件 → `lims-server/internal/middleware/`
+- 数据库迁移 → `lims-server/migrations/`
+- 配置 → `lims-server/internal/config/`
+
+### 前端修改 → `lims-electron`（仓库根目录）
+
+- 页面 → `lims-electron/src/pages/`
+- 组件 → `lims-electron/src/components/`
+- API / stores / router / hooks / utils / types / 主题 → `lims-electron/src/` 下对应目录
+
+### Electron 主进程与打包
+
+- 主进程与 preload → `lims-electron/electron/`
+- 打包脚本、图标 → `lims-electron/scripts/`、`lims-electron/build/`
+- 部署 → `lims-electron/deploy/`、根 `Makefile`
+
+### Web 专属 → `lims-web`（仅限独有特性）
+
+- 部署配置（nginx、Dockerfile）→ `lims-web/deploy/`
+- Web 端专属环境变量配置
+
+## Git 提交规范
+
+所有子项目统一使用以下提交规范：
+
+- 必须使用简体中文
+- 最多 30 个字
+- 不使用英文前缀（feat:、fix: 等）
+- 直接简洁描述改动内容
+- 只写一行
+
+## Submodule 关系图（当前）
+
+```
+lims-electron/
+  └── src/ · electron/ · package.json   # 前端（无子模块）
+
+lims-server/
+  └── （本仓库）完整的后端与 Dockerfile
+```
+
+前端在 `lims-electron`；后端镜像由 `lims-server` CI 或本地 `docker build` 产出，在 compose / K8s 中引用。
+
+## 代码自检（每次修改后必须执行）
+
+每次完成代码修改后，必须对本次修改的所有文件执行以下自检流程，并将结果以清单形式输出给用户：
+
+### 1. Lint 检查
+
+- 对本次修改的所有文件运行 `ReadLints`，检查是否引入了新的 lint 错误
+- 如有新增错误，立即修复
+
+### 2. TypeScript 类型检查（前端文件）
+
+- 如果修改了 `.ts` / `.tsx` 文件，检查类型是否正确
+- 关注：any 类型滥用、缺少类型注解、类型不匹配
+
+### 3. 逻辑审查
+
+- 检查是否有明显的逻辑错误（空指针、数组越界、条件判断遗漏等）
+- 检查错误处理是否完整（try-catch、error response、边界情况）
+- 检查是否有未使用的变量、导入或死代码
+
+### 4. 安全审查
+
+- 检查是否有硬编码的密钥、密码、token
+- 检查用户输入是否做了校验和清洗（前后端都适用）
+- 检查 SQL 查询是否有注入风险（后端）
+
+### 5. 一致性检查
+
+- 命名是否符合项目约定（Go: snake_case 函数体内 / CamelCase 导出；TS: camelCase / PascalCase 组件）
+- 文件是否放在了正确的子项目和目录下
+- 是否遵循了已有的代码模式和架构风格
+
+### 输出格式
+
+每次修改后输出如下自检摘要：
+
+```
+✅ / ❌ Lint 检查：<结果>
+✅ / ❌ 类型检查：<结果>
+✅ / ❌ 逻辑审查：<结果>
+✅ / ❌ 安全审查：<结果>
+✅ / ❌ 一致性检查：<结果>
+```
+
+如果所有项目均通过，输出 `✅ 自检全部通过`。如有问题，先修复再输出最终结果。
