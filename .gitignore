@@ -1,0 +1,22 @@
+# macOS / IDE
+.DS_Store
+.cursor/
+
+# 完整 LIMS 业务代码（本仓库仅开源 demo，勿提交）
+lims-server/
+lims-electron/
+cert-extractor/
+lims-deploy-assistant/
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+
+# demo-server
+demo-server/data/
+demo-server/bin/
+
+# demo-web
+demo-web/node_modules/
+demo-web/dist/
